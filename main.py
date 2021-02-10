@@ -1,13 +1,14 @@
 import logging
 from config import TOKEN
 from telegram import message, Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, \
+    ReplyMarkup
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
 logger = logging.getLogger(__name__)
-message_num = 0
 
 
 def start(update, context):
@@ -15,21 +16,34 @@ def start(update, context):
 
 
 def help(update, context):
-    update.message.reply_text('Помогите!')
-
-
-def echo(update, context):
-    global message_num
-    update.message.reply_text(update.message.chat_id)
-    message_num += 1
-
-
-def msg_num(update, context):
-    update.message.reply_text(str(message_num))
+    update.message.reply_text('Help!')
 
 
 def error(update, context):
     logger.warning('Update "%s" caused error "%s"', update, context.error)
+
+
+def echo(update, context):
+    ''' кнопка под сообщением бота
+    keyboard = [
+        [InlineKeyboardButton('text1', callback_data='button_callback_1')]
+    ]
+
+    markup = InlineKeyboardMarkup(keyboard)
+
+    update.message.reply_text(f'{update.message.chat.username} sayed: {update.message.text}',
+                              reply_markup=markup)
+    '''
+    keyboard = [[KeyboardButton('text2')]]
+    markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    update.message.reply_text('text', reply_markup=markup)
+
+
+def button(update: Update, context) -> None:
+    query = update.callback_query
+    print(query.data)
+    query.answer()
+    query.edit_message_text(text=f"Возврат кнопки: {query.data}")
 
 
 def main():
@@ -39,9 +53,9 @@ def main():
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
-    dp.add_handler(CommandHandler("message_counter", msg_num))
 
     dp.add_handler(MessageHandler(Filters.text, echo))
+    updater.dispatcher.add_handler(CallbackQueryHandler(button))
 
     dp.add_error_handler(error)
 
