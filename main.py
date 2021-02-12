@@ -24,7 +24,6 @@ def error(update, context):
 
 
 def echo(update, context):
-    ''' кнопка под сообщением бота
     keyboard = [
         [InlineKeyboardButton('text1', callback_data='button_callback_1')]
     ]
@@ -37,7 +36,7 @@ def echo(update, context):
     keyboard = [[KeyboardButton('text2')]]
     markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     update.message.reply_text('text', reply_markup=markup)
-
+    '''
 
 def button(update: Update, context) -> None:
     query = update.callback_query
