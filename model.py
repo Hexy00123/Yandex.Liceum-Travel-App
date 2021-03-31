@@ -11,3 +11,4 @@ class User(BaseModel):
     id = peewee.IntegerField()
     email = peewee.TextField()
     password = peewee.TextField()
+    favorites = peewee.TextField()
