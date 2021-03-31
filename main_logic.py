@@ -1,212 +1,243 @@
 import sys
 import geocoder
 import requests
-from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QPixmap
-
-from authentication_widget import Ui_Sign_in
+from start_widget import Ui_Form
 from style_main import Ui_MainWindow
+from authentication_widget import Ui_Sign_in
+from registration_widget import Ui_Registration
 from style_window_information import Ui_Window_Information
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
-from start_widget import Ui_Form
-from registration_widget import Ui_Registration
-
-site = 'https://geocode-maps.yandex.ru/1.x/?'
-site2 = 'http://api.opentripmap.com/0.1/ru/places/xid/'
-site3 = 'https://geocode-maps.yandex.ru/1.x/?'
-site4 = 'https://static-maps.yandex.ru/1.x/?'
-site5 = 'http://api.opentripmap.com/0.1/ru/places/radius?'
-KEY = '5ae2e3f221c38a28845f05b611939fdf10b5f750f31efaf84a6fa7c0'
-
-atractions = {}
-position = []
-list_information = {}
+from config import URL, site3, site, site2, site4, site5, KEY
 
 
-class MyWidget(QMainWindow, Ui_MainWindow):
+class MainWindowApp(QMainWindow, Ui_MainWindow):
     def __init__(self):
-        global list_information
         super().__init__()
+        # иницилизация переменых, получение позиции и подключение кнопок
         self.setupUi(self)
-        self.find_attractions.clicked.connect(self.run)
-        self.list_attractions.itemClicked.connect(self.selectionChanged)
-        self.atractions_photo = {}
+        self.get_position()
+        self.init_constants()
+        self.connect_buttons()
+
+    def connect_buttons(self):
+        # подключение кнопок
+        self.find_attractions.clicked.connect(self.show_attractions)
+        self.list_attractions.itemClicked.connect(self.selection_changed)
+
+    def get_position(self):
+        # получение местоположения
+        self.position = geocoder.ip('me').latlng[::-1]
+
+    def init_constants(self):
+        # инициализирование переменных
+        self.ids = []
+        self.ids_with_images = []
+        self.atractions = {}
         self.position = []
-        pos = geocoder.ip('me')
-        self.position = pos.latlng
-        self.position = self.position[::-1]
-        self.pos = []
-        self.URL = 'http://0f207db3e953.ngrok.io/'
 
     def search_attractions(self):
-        ids = []
-        ids_with_images = []
+        # поиск мест
+        self.ids.clear()
+        self.ids_with_images.clear()
+        self.get_position()
+
+        # получение достопримечательностей
         response = requests.get(site5, params={
             'radius': '1500',
             'lon': self.position[0],
             'lat': self.position[1],
             'apikey': KEY
         })
+
+        # сортировка достопримечательностей по наличию фото и названия
         for i in response.json().keys():
             if i != 'type':
                 for j in response.json()[i]:
-                    ids.append(j['id'])
-        for i in ids:
+                    self.ids.append(j['id'])
+        for i in self.ids:
             response2 = requests.get(site2 + i + '?', params={
                 'apikey': KEY
             })
             if response2.json().get('image') is not None and response2.json().get(
                     'name') is not None and 'wikimedia' not in response2.json().get('image'):
-                ids_with_images.append(i)
-                pos = [response2.json().get('point')['lon'], response2.json().get('point')['lat']]
-                atractions[response2.json()['name']] = pos
-                list_information[response2.json()['name']] = response2.json()['info']['descr']
-        return ids_with_images
+                self.ids_with_images.append(i)
+                self.atractions[response2.json()['name']] = [response2.json().get('point')['lon'],
+                                                             response2.json().get('point')['lat'],
+                                                             response2.json()['info']['descr']]
 
-    def run(self):
-        pos = geocoder.ip('me')
-        self.position = pos.latlng
-        self.position = self.position[::-1]
+        # возвращение id отсортированных достопримечательностей
+        return self.ids_with_images
+
+    def show_attractions(self):
+        # показ списка достопримечательностей
         self.list_attractions.clear()
-        information = self.search_attractions()
-        for i in information:
+        for i in self.search_attractions():
             response2 = requests.get(
                 site2 + i + '?', params={
                     'apikey': KEY
                 }).json()
             try:
                 self.list_attractions.addItem(response2['name'])
-                self.atractions_photo[response2['name']] = response2['image']
+                self.atractions[response2['name']].append(response2['image'])
             except KeyError:
                 pass
 
-    def selectionChanged(self, item):
-        self.w2 = Window2(item.text(), self.atractions_photo[item.text()])
-        self.w2.show()
+    def selection_changed(self, item):
+        # открытие второго окна с описанием
+        self.window_description = DescriptionWindow(item.text(), self.atractions,
+                                                    self.position)
+        self.window_description.show()
 
 
-
-class Window2(QWidget, Ui_Window_Information):
-    def __init__(self, name, photo):
-        global list_information
+class DescriptionWindow(QWidget, Ui_Window_Information):
+    def __init__(self, name, attractions, position):
         super().__init__()
+        # инициализация переменных, получение фото карты, получение описания, вставка фото
         self.setupUi(self)
         self.setWindowTitle(name)
-        r = requests.get(photo).content
         self.pixmap = QPixmap()
-        self.pixmap.loadFromData(r)
+        self.name = name
+        self.attractions = attractions
+        self.position = position
+        self.create_map(name)
+        self.create_photo()
+        self.create_description()
+        self.make_up()
+
+    def make_up(self):
+        # небольшие косметические поправки
         self.label.move(10, 10)
         self.label.resize(430, 500)
         self.label.setScaledContents(False)
-        self.pixmap.scaled(430, 500)
-        self.label.setPixmap(self.pixmap)
-        self.create_map(name)
-        pos = geocoder.ip('me')
-        self.position = pos.latlng
-        p = ', '.join(list(map(str, atractions[name])))
+        self.adress.resize(500, 20)
+
+    def create_description(self):
+        # получение описания места
         req = requests.get(site, params={
-            'geocode': p,
+            'geocode': ', '.join(list(map(str, self.attractions[self.name][:2]))),
             'apikey': '40d1649f-0493-4b70-98ba-98533de7710b',
             'format': 'json',
             'kind': 'house'
         })
-        self.adress.resize(500, 20)
-        text = list_information[name].replace('<p>', '')
+        text = self.attractions[self.name][2].replace('<p>', '').replace('</p>', '')
         self.adress.setText(
             req.json()['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['metaDataProperty'][
                 'GeocoderMetaData']['text'])
         self.inform.setText(text)
 
-    def create_map(self, point):
-        pos = geocoder.ip('me')
-        position = pos.latlng[::-1]
-        position = list(map(str, position))
-        params = f'll={",".join(position)}&l=map&pt={",".join(list(map(str, atractions[point])))},pm2rdm~{",".join(position)},pm2gnm'
-        photo = site4 + params
-        r = requests.get(photo).content
-        pixmap = QPixmap()
-        pixmap.loadFromData(r)
+    def create_photo(self):
+        # получение фотографии места
+        r = requests.get(self.attractions[self.name][-1]).content
+        self.pixmap.loadFromData(r)
+        self.pixmap.scaled(430, 500)
+        self.label.setPixmap(self.pixmap)
         self.image_map.move(10, 10)
         self.image_map.resize(430, 500)
         self.image_map.setScaledContents(False)
+
+    def create_map(self, point):
+        # создании карты с местоположением места
+        pos = ",".join(list(map(str, self.position)))
+        pos_attraction = ",".join(list(map(str, self.attractions[point][:2])))
+        params = f'll={pos}&l=map&pt={pos_attraction},pm2rdm~{pos},pm2gnm'
+        pixmap = QPixmap()
+        pixmap.loadFromData(requests.get(site4 + params).content)
         pixmap.scaled(430, 500)
         self.image_map.setPixmap(pixmap)
 
     def favorites(self):
+        # get запрос избранных пользователя
         pass
 
 
+# стартовое окно
 class StartWindow(QWidget, Ui_Form):
     def __init__(self):
-        global list_information
         super().__init__()
         self.setupUi(self)
+        self.connect_buttons()
         self.setWindowTitle('Приветствую вас')
+
+    def connect_buttons(self):
+        # подключение кнопок
         self.sing_up_dec_button.clicked.connect(self.registration)
         self.sing_in_dec_button.clicked.connect(self.sign_in)
 
     def registration(self):
-        self.w = RegistartionWindow()
-        self.w.show()
+        # открытие окно регмстрации
+        self.sign_up_window = RegistartionWindow()
+        self.sign_up_window.show()
         self.close()
 
     def sign_in(self):
-        self.w2 = SignInWindow()
-        self.w2.show()
+        # открытие окно входа
+        self.sign_in_window = SignInWindow()
+        self.sign_in_window.show()
         self.close()
 
 
+# окно регистрации
 class RegistartionWindow(QWidget, Ui_Registration):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle("Регистрация")
+        self.connect_buttons()
+
+    def connect_buttons(self):
+        # подключение кнопок
         self.authentificate_button.clicked.connect(self.registration)
-        self.URL = 'http://a825083f16f6.ngrok.io'
 
     def get_registr(self, mail, password):
-        req = requests.post(f'{self.URL}/api/reg/{mail}/{password}')
-        print(req.json())
+        # получение результата запроса на регистрацию
+        req = requests.post(f'{URL}/api/reg/{mail}/{password}')
         if req.json().get('result')['message'] == 'OK':
-            self.main = MyWidget()
+            self.main = MainWindowApp()
             self.main.show()
             self.close()
 
     def registration(self):
-        mail = self.login_line.text()
-        password = self.password_line.text()
-        self.get_registr(mail, password)
+        # вызов функции
+        self.get_registr(self.login_line.text(), self.password_line.text())
 
 
+# окно входа
 class SignInWindow(QWidget, Ui_Sign_in):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle("Вход")
+
+    def connect_buttons(self):
+        # подключение кнопок
         self.authentificate_button.clicked.connect(self.login)
-        self.URL = 'http://a825083f16f6.ngrok.io'
 
     def authorization(self, mail, password):
-        req = requests.get(f'{self.URL}/api/auto/{mail}/{password}')
-        print(req.json())
+        # получение результата запроса на вход
+        req = requests.get(f'{URL}/api/auto/{mail}/{password}')
         if req.json().get('result')['message'] == 'OK':
-            self.main = MyWidget()
+            self.main = MainWindowApp()
             self.main.show()
             self.close()
 
     def login(self):
-        mail = self.login_line.text()
-        password = self.password_line.text()
-        self.authorization(mail, password)
+        # вызов функции
+        self.authorization(self.login_line.text(), self.password_line.text())
 
 
+# отладочная функция для показа ошибок, удалить на релизе
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
 
 
 if __name__ == '__main__':
+    # подключила главное окно для отладки, чтобы запустить полность замени класс на StartWindow
     app = QApplication(sys.argv)
-    ex = StartWindow()
+    ex = MainWindowApp()
     ex.show()
+    # отладочная функция для показа ошибок, удалить на релизе
+    # . . . . . . . . . . . . . . . . . . . . . . . . . . . .
     sys.excepthook = except_hook
+    # . . . . . . . . . . . . . . . . . . . . . . . . . . . .
     sys.exit(app.exec_())
