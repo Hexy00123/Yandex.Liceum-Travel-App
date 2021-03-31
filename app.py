@@ -1,8 +1,9 @@
 from flask import request, jsonify, Flask, Blueprint, make_response
 from model import *
+from config import post_login, post_password
+import smtplib
 
 app = Flask(__name__)
-db = []
 
 
 @app.route('/api/reg/<mail>/<password>', methods=['POST'])
@@ -13,6 +14,22 @@ def register(mail, password):
         except ValueError:
             user_id = 1
         User.create(id=user_id, email=mail, password=password, favorites='')
+
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.ehlo()
+        server.starttls()
+        server.login(post_login, post_password)
+
+        text = 'Данная почта была зарегестрирована в приложении'
+
+        text = "\r\n".join([
+            "Subject: Регистрация нового пользователя",
+            str(text)
+        ])
+
+        server.sendmail(post_login, mail, text.encode('utf-8'))
+        server.quit()
+
         return make_response(jsonify({'result': {'message': 'OK'}}), 200)
 
     else:
@@ -26,6 +43,22 @@ def authorisation(mail, password):
         user = User.get(User.email == mail)
         if password != user.password:
             return make_response(jsonify({'result': {'message': 'Неверный пароль'}}), 404)
+
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.ehlo()
+        server.starttls()
+        server.login(post_login, post_password)
+
+        text = 'В ваш аккаунт был выполнен вход'
+
+        text = "\r\n".join([
+            "Subject: Авторизация пользователя",
+            str(text)
+        ])
+
+        server.sendmail(post_login, mail, text.encode('utf-8'))
+        server.quit()
+
         return make_response(jsonify({'result': {'message': 'OK', 'id': user.id}}), 200)
     except:
         return make_response(jsonify({'result': {'message': 'Данная почта не зарегестрирована'}}),
