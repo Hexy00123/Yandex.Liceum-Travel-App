@@ -5,7 +5,7 @@ from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QPixmap
 
 from authentication_widget import Ui_Sign_in
-from style_2 import Ui_MainWindow
+from style_main import Ui_MainWindow
 from style_window_information import Ui_Window_Information
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
 from start_widget import Ui_Form
@@ -84,11 +84,6 @@ class MyWidget(QMainWindow, Ui_MainWindow):
         self.w2 = Window2(item.text(), self.atractions_photo[item.text()])
         self.w2.show()
 
-    def registration(self, mail, password):
-        requests.post(f'{self.URL}/api/reg/{mail}/{password}')
-
-    def authorization(self, mail, password):
-        print(requests.get(f'{self.URL}/api/auto/{mail}/{password}').json())
 
 
 class Window2(QWidget, Ui_Window_Information):
@@ -166,9 +161,21 @@ class RegistartionWindow(QWidget, Ui_Registration):
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle("Регистрация")
+        self.authentificate_button.clicked.connect(self.registration)
+        self.URL = 'http://a825083f16f6.ngrok.io'
+
+    def get_registr(self, mail, password):
+        req = requests.post(f'{self.URL}/api/reg/{mail}/{password}')
+        print(req.json())
+        if req.json().get('result')['message'] == 'OK':
+            self.main = MyWidget()
+            self.main.show()
+            self.close()
 
     def registration(self):
-        pass
+        mail = self.login_line.text()
+        password = self.password_line.text()
+        self.get_registr(mail, password)
 
 
 class SignInWindow(QWidget, Ui_Sign_in):
@@ -176,9 +183,21 @@ class SignInWindow(QWidget, Ui_Sign_in):
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle("Вход")
+        self.authentificate_button.clicked.connect(self.login)
+        self.URL = 'http://a825083f16f6.ngrok.io'
+
+    def authorization(self, mail, password):
+        req = requests.get(f'{self.URL}/api/auto/{mail}/{password}')
+        print(req.json())
+        if req.json().get('result')['message'] == 'OK':
+            self.main = MyWidget()
+            self.main.show()
+            self.close()
 
     def login(self):
-        pass
+        mail = self.login_line.text()
+        password = self.password_line.text()
+        self.authorization(mail, password)
 
 
 def except_hook(cls, exception, traceback):

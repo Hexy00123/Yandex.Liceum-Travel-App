@@ -64,4 +64,4 @@ class Ui_Window_Information(object):
         self.image_map.setText(_translate("MainWindow", "TextLabel"))
         self.adress.setText(_translate("MainWindow", "TextLabel"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab3), _translate("MainWindow", "Описание"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MainWindow", "Адресс"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MainWindow", "Адрес"))
