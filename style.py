@@ -8,6 +8,7 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.list_attractions = QtWidgets.QListWidget(self.centralwidget)
+        self.list_attractions.setStyleSheet("font-size: 20px")
         self.list_attractions.setGeometry(QtCore.QRect(20, 280, 541, 351))
         self.list_attractions.setObjectName("list_attractions")
         self.find_attractions = QtWidgets.QPushButton(self.centralwidget)
