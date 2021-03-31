@@ -1,1 +1,3 @@
-TOKEN = '1614720657:AAGNB0Fyh6j4rN58gIXOp2jOBHxA4PCtgys'
+from peewee import SqliteDatabase
+
+DB = SqliteDatabase('Users.db')
