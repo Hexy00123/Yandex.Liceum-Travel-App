@@ -1,21 +1,17 @@
 import sys
 import geocoder
 import requests
+from PyQt5 import uic
 from PyQt5.QtGui import QPixmap
-from start_widget import Ui_Form
-from style_main import Ui_MainWindow
-from authentication_widget import Ui_Sign_in
-from registration_widget import Ui_Registration
-from style_window_information import Ui_Window_Information
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
-from config import URL, site3, site, site2, site4, site5, KEY
+from config import URL, site, get_attraction, get_map, find_all_attractions, KEY, PATH
 
 
-class MainWindowApp(QMainWindow, Ui_MainWindow):
+class MainWindowApp(QMainWindow):
     def __init__(self):
         super().__init__()
         # иницилизация переменых, получение позиции и подключение кнопок
-        self.setupUi(self)
+        uic.loadUi(PATH + 'main_window_style.ui', self)
         self.get_position()
         self.init_constants()
         self.connect_buttons()
@@ -43,7 +39,7 @@ class MainWindowApp(QMainWindow, Ui_MainWindow):
         self.get_position()
 
         # получение достопримечательностей
-        response = requests.get(site5, params={
+        response = requests.get(find_all_attractions, params={
             'radius': '1500',
             'lon': self.position[0],
             'lat': self.position[1],
@@ -56,7 +52,7 @@ class MainWindowApp(QMainWindow, Ui_MainWindow):
                 for j in response.json()[i]:
                     self.ids.append(j['id'])
         for i in self.ids:
-            response2 = requests.get(site2 + i + '?', params={
+            response2 = requests.get(get_attraction + i + '?', params={
                 'apikey': KEY
             })
             if response2.json().get('image') is not None and response2.json().get(
@@ -74,7 +70,7 @@ class MainWindowApp(QMainWindow, Ui_MainWindow):
         self.list_attractions.clear()
         for i in self.search_attractions():
             response2 = requests.get(
-                site2 + i + '?', params={
+                get_attraction + i + '?', params={
                     'apikey': KEY
                 }).json()
             try:
@@ -90,12 +86,13 @@ class MainWindowApp(QMainWindow, Ui_MainWindow):
         self.window_description.show()
 
 
-class DescriptionWindow(QWidget, Ui_Window_Information):
+class DescriptionWindow(QMainWindow):
     def __init__(self, name, attractions, position):
         super().__init__()
+        uic.loadUi(PATH + 'style_window_information.ui', self)
         # инициализация переменных, получение фото карты, получение описания, вставка фото
-        self.setupUi(self)
         self.setWindowTitle(name)
+        self.make_up()
         self.pixmap = QPixmap()
         self.name = name
         self.attractions = attractions
@@ -103,7 +100,6 @@ class DescriptionWindow(QWidget, Ui_Window_Information):
         self.create_map(name)
         self.create_photo()
         self.create_description()
-        self.make_up()
 
     def make_up(self):
         # небольшие косметические поправки
@@ -111,6 +107,10 @@ class DescriptionWindow(QWidget, Ui_Window_Information):
         self.label.resize(430, 500)
         self.label.setScaledContents(False)
         self.adress.resize(500, 20)
+        self.inform.move(10, 3)
+        self.inform.setWordWrap(True)
+        self.inform.resize(440, 650)
+        self.inform.setStyleSheet('font-size:16px')
 
     def create_description(self):
         # получение описания места
@@ -142,7 +142,7 @@ class DescriptionWindow(QWidget, Ui_Window_Information):
         pos_attraction = ",".join(list(map(str, self.attractions[point][:2])))
         params = f'll={pos}&l=map&pt={pos_attraction},pm2rdm~{pos},pm2gnm'
         pixmap = QPixmap()
-        pixmap.loadFromData(requests.get(site4 + params).content)
+        pixmap.loadFromData(requests.get(get_map + params).content)
         pixmap.scaled(430, 500)
         self.image_map.setPixmap(pixmap)
 
@@ -152,12 +152,12 @@ class DescriptionWindow(QWidget, Ui_Window_Information):
 
 
 # стартовое окно
-class StartWindow(QWidget, Ui_Form):
+class StartWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setupUi(self)
-        self.connect_buttons()
+        uic.loadUi(PATH + 'start_widget.ui', self)
         self.setWindowTitle('Приветствую вас')
+        self.connect_buttons()
 
     def connect_buttons(self):
         # подключение кнопок
@@ -178,10 +178,10 @@ class StartWindow(QWidget, Ui_Form):
 
 
 # окно регистрации
-class RegistartionWindow(QWidget, Ui_Registration):
+class RegistartionWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setupUi(self)
+        uic.loadUi(PATH + 'registration_widget.ui', self)
         self.setWindowTitle("Регистрация")
         self.connect_buttons()
 
@@ -203,10 +203,10 @@ class RegistartionWindow(QWidget, Ui_Registration):
 
 
 # окно входа
-class SignInWindow(QWidget, Ui_Sign_in):
+class SignInWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setupUi(self)
+        uic.loadUi(PATH + 'authentication_widget.ui', self)
         self.setWindowTitle("Вход")
 
     def connect_buttons(self):
@@ -232,8 +232,8 @@ def except_hook(cls, exception, traceback):
 
 
 if __name__ == '__main__':
-    # подключила главное окно для отладки, чтобы запустить полность замени класс на StartWindow
     app = QApplication(sys.argv)
+    # подключила главное окно для отладки, чтобы запустить полность замени класс на StartWindow
     ex = MainWindowApp()
     ex.show()
     # отладочная функция для показа ошибок, удалить на релизе
