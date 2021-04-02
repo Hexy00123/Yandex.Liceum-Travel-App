@@ -4,33 +4,41 @@ import requests
 from PyQt5 import uic
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
-from config import URL, site, get_attraction, get_map, find_all_attractions, KEY, PATH
+from config_client import URL, site, get_attraction, get_map, find_all_attractions, KEY, PATH
 
 
 class MainWindowApp(QMainWindow):
-    def __init__(self):
+    def __init__(self, user_id):
         super().__init__()
         # иницилизация переменых, получение позиции и подключение кнопок
         uic.loadUi(PATH + 'main_window_style.ui', self)
-        self.get_position()
+        self.user_id = user_id
         self.init_constants()
+        self.get_position()
         self.connect_buttons()
+        # удалить на релизе
+        #requests.get(f'{URL}/api/APP_IS_WORKING')
+        # . . . . . . . . . . . . . . . . . .
+        self.show_favorites(self.favorites_id)
+
+    def init_constants(self):
+        # инициализирование переменных34
+        self.ids = []
+        self.ids_with_images = []
+        self.atractions = {}
+        self.position = []
+        self.favorites_id = self.get_favorites()
+        self.favorites = {}
 
     def connect_buttons(self):
         # подключение кнопок
         self.find_attractions.clicked.connect(self.show_attractions)
         self.list_attractions.itemClicked.connect(self.selection_changed)
+        self.listWidget.itemClicked.connect(self.selection_favorite)
 
     def get_position(self):
         # получение местоположения
         self.position = geocoder.ip('me').latlng[::-1]
-
-    def init_constants(self):
-        # инициализирование переменных
-        self.ids = []
-        self.ids_with_images = []
-        self.atractions = {}
-        self.position = []
 
     def search_attractions(self):
         # поиск мест
@@ -60,8 +68,8 @@ class MainWindowApp(QMainWindow):
                 self.ids_with_images.append(i)
                 self.atractions[response2.json()['name']] = [response2.json().get('point')['lon'],
                                                              response2.json().get('point')['lat'],
-                                                             response2.json()['info']['descr']]
-
+                                                             response2.json()['info']['descr'],
+                                                             i]
         # возвращение id отсортированных достопримечательностей
         return self.ids_with_images
 
@@ -81,36 +89,66 @@ class MainWindowApp(QMainWindow):
 
     def selection_changed(self, item):
         # открытие второго окна с описанием
+        self.get_position()
         self.window_description = DescriptionWindow(item.text(), self.atractions,
-                                                    self.position)
+                                                    self.position, [self.user_id, self.atractions[item.text()][3]])
         self.window_description.show()
+
+    def get_favorites(self):
+        # get запрос избранных пользователя присваевается резульата self.favorites_id
+        req = requests.get(f'{URL}/api/favorites/{self.user_id}').json()
+        if req['result']['message'] == 'OK':
+            return req['result']['favorites']
+        return None
+
+    def show_favorites(self, source):
+        # показ избранных в списке
+        source.remove('')
+        if len(source) != 0:
+            for i in source:
+                response = requests.get(
+                    get_attraction + i + '?',
+                    params={
+                        'apikey': KEY
+                    })
+                self.favorites[response.json()['name']] = [response.json().get('point')['lon'],
+                                                           response.json().get('point')['lat'],
+                                                           response.json()['info']['descr'],
+                                                           i,
+                                                           response.json()['image']]
+                self.listWidget.addItem(response.json()['name'])
+
+    def selection_favorite(self, item):
+        # открытие окна избранного
+        self.window_favorite = DescriptionWindow(item.text(), self.favorites,
+                                                    self.position, [self.user_id, self.favorites[item.text()][3]])
+        self.window_favorite.show()
 
 
 class DescriptionWindow(QMainWindow):
-    def __init__(self, name, attractions, position):
+    def __init__(self, name, attractions, position, user_id_attraction):
         super().__init__()
         uic.loadUi(PATH + 'style_window_information.ui', self)
         # инициализация переменных, получение фото карты, получение описания, вставка фото
         self.setWindowTitle(name)
         self.make_up()
         self.pixmap = QPixmap()
+        self.user_id_attraction = user_id_attraction
         self.name = name
         self.attractions = attractions
         self.position = position
+        self.connect_butttons()
         self.create_map(name)
-        self.create_photo()
+        self.set_photo()
         self.create_description()
+
+    def connect_butttons(self):
+        self.pushButton.clicked.connect(self.add_favorites)
 
     def make_up(self):
         # небольшие косметические поправки
-        self.label.move(10, 10)
-        self.label.resize(430, 500)
         self.label.setScaledContents(False)
-        self.adress.resize(500, 20)
-        self.inform.move(10, 3)
         self.inform.setWordWrap(True)
-        self.inform.resize(440, 650)
-        self.inform.setStyleSheet('font-size:16px')
 
     def create_description(self):
         # получение описания места
@@ -126,15 +164,18 @@ class DescriptionWindow(QMainWindow):
                 'GeocoderMetaData']['text'])
         self.inform.setText(text)
 
-    def create_photo(self):
+    def set_photo(self):
         # получение фотографии места
-        r = requests.get(self.attractions[self.name][-1]).content
+        r = self.create_photo(self.attractions)
         self.pixmap.loadFromData(r)
         self.pixmap.scaled(430, 500)
         self.label.setPixmap(self.pixmap)
         self.image_map.move(10, 10)
         self.image_map.resize(430, 500)
         self.image_map.setScaledContents(False)
+
+    def create_photo(self, source):
+        return requests.get(source[self.name][-1]).content
 
     def create_map(self, point):
         # создании карты с местоположением места
@@ -146,8 +187,9 @@ class DescriptionWindow(QMainWindow):
         pixmap.scaled(430, 500)
         self.image_map.setPixmap(pixmap)
 
-    def favorites(self):
-        # get запрос избранных пользователя
+    def add_favorites(self):
+        # запрос на добавление избранных пользователя
+        r = requests.post(f'{URL}/api/favorites/{self.user_id_attraction[0]}/{self.user_id_attraction[1]}')
         pass
 
 
@@ -192,8 +234,9 @@ class RegistartionWindow(QWidget):
     def get_registr(self, mail, password):
         # получение результата запроса на регистрацию
         req = requests.post(f'{URL}/api/reg/{mail}/{password}')
+        print(req.json())
         if req.json().get('result')['message'] == 'OK':
-            self.main = MainWindowApp()
+            self.main = MainWindowApp(req.json()['result']['id'])
             self.main.show()
             self.close()
 
@@ -208,6 +251,7 @@ class SignInWindow(QWidget):
         super().__init__()
         uic.loadUi(PATH + 'authentication_widget.ui', self)
         self.setWindowTitle("Вход")
+        self.connect_buttons()
 
     def connect_buttons(self):
         # подключение кнопок
@@ -217,7 +261,7 @@ class SignInWindow(QWidget):
         # получение результата запроса на вход
         req = requests.get(f'{URL}/api/auto/{mail}/{password}')
         if req.json().get('result')['message'] == 'OK':
-            self.main = MainWindowApp()
+            self.main = MainWindowApp(req.json()['result']['id'])
             self.main.show()
             self.close()
 
@@ -234,7 +278,7 @@ def except_hook(cls, exception, traceback):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     # подключила главное окно для отладки, чтобы запустить полность замени класс на StartWindow
-    ex = MainWindowApp()
+    ex = StartWindow()
     ex.show()
     # отладочная функция для показа ошибок, удалить на релизе
     # . . . . . . . . . . . . . . . . . . . . . . . . . . . .

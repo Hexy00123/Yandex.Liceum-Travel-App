@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>502</width>
-    <height>642</height>
+    <height>653</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -33,10 +33,10 @@
      <widget class="QLabel" name="label">
       <property name="geometry">
        <rect>
-        <x>190</x>
-        <y>190</y>
-        <width>55</width>
-        <height>16</height>
+        <x>10</x>
+        <y>10</y>
+        <width>431</width>
+        <height>431</height>
        </rect>
       </property>
       <property name="text">
@@ -79,7 +79,7 @@
        <rect>
         <x>20</x>
         <y>550</y>
-        <width>111</width>
+        <width>421</width>
         <height>31</height>
        </rect>
       </property>
@@ -98,11 +98,14 @@
      <widget class="QLabel" name="inform">
       <property name="geometry">
        <rect>
-        <x>200</x>
-        <y>280</y>
-        <width>55</width>
-        <height>16</height>
+        <x>20</x>
+        <y>10</y>
+        <width>421</width>
+        <height>551</height>
        </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">font-size: 15px;</string>
       </property>
       <property name="text">
        <string>TextLabel</string>
