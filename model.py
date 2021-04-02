@@ -12,10 +12,10 @@ class User(BaseModel):
     email = peewee.TextField()
     password = peewee.TextField()
     favorites = peewee.TextField()
+    anket_id = peewee.IntegerField()
 
 class Anket(BaseModel):
     id = peewee.IntegerField()
     surname = peewee.TextField()
     name = peewee.TextField()
     secondname = peewee.TextField()
-    
