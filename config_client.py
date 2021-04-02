@@ -1,4 +1,4 @@
-URL = 'http://127.0.0.1:5000/'
+URL = 'http://70a5cf5f8ac1.ngrok.io'
 
 site = 'https://geocode-maps.yandex.ru/1.x/?'
 get_attraction = 'http://api.opentripmap.com/0.1/ru/places/xid/'

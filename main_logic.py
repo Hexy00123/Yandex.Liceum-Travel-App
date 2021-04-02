@@ -28,6 +28,7 @@ class MainWindowApp(QMainWindow):
         self.atractions = {}
         self.position = []
         self.favorites_id = self.get_favorites()
+        print(self.favorites_id)
         self.favorites = {}
 
     def connect_buttons(self):
@@ -93,17 +94,19 @@ class MainWindowApp(QMainWindow):
         self.window_description = DescriptionWindow(item.text(), self.atractions,
                                                     self.position, [self.user_id, self.atractions[item.text()][3]])
         self.window_description.show()
+        self.update_favorites()
 
     def get_favorites(self):
         # get запрос избранных пользователя присваевается резульата self.favorites_id
-        req = requests.get(f'{URL}/api/favorites/{self.user_id}').json()
-        if req['result']['message'] == 'OK':
-            return req['result']['favorites']
+        req = requests.get(f'{URL}/api/favorites/{self.user_id}')
+        print(req.status_code)
+        if req.status_code == 200:
+            return req.json()['result']['favorites']
         return None
 
     def show_favorites(self, source):
         # показ избранных в списке
-        source.remove('')
+        #source.remove('')
         if len(source) != 0:
             for i in source:
                 response = requests.get(
@@ -123,6 +126,12 @@ class MainWindowApp(QMainWindow):
         self.window_favorite = DescriptionWindow(item.text(), self.favorites,
                                                     self.position, [self.user_id, self.favorites[item.text()][3]])
         self.window_favorite.show()
+        self.update_favorites()
+
+    def update_favorites(self):
+        self.listWidget.clear()
+        self.favorites_id = self.get_favorites()
+        self.show_favorites(self.favorites_id)
 
 
 class DescriptionWindow(QMainWindow):
@@ -190,6 +199,7 @@ class DescriptionWindow(QMainWindow):
     def add_favorites(self):
         # запрос на добавление избранных пользователя
         r = requests.post(f'{URL}/api/favorites/{self.user_id_attraction[0]}/{self.user_id_attraction[1]}')
+        print(r.status_code)
         pass
 
 
@@ -235,7 +245,7 @@ class RegistartionWindow(QWidget):
         # получение результата запроса на регистрацию
         req = requests.post(f'{URL}/api/reg/{mail}/{password}')
         print(req.json())
-        if req.json().get('result')['message'] == 'OK':
+        if req.status_code == 200:
             self.main = MainWindowApp(req.json()['result']['id'])
             self.main.show()
             self.close()
@@ -260,7 +270,7 @@ class SignInWindow(QWidget):
     def authorization(self, mail, password):
         # получение результата запроса на вход
         req = requests.get(f'{URL}/api/auto/{mail}/{password}')
-        if req.json().get('result')['message'] == 'OK':
+        if req.status_code == 200:
             self.main = MainWindowApp(req.json()['result']['id'])
             self.main.show()
             self.close()
