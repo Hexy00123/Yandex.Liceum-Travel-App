@@ -3,7 +3,7 @@ import geocoder
 import requests
 from PyQt5 import uic
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QMessageBox
 from config_client import URL, site, get_attraction, get_map, find_all_attractions, KEY, PATH
 
 
@@ -129,6 +129,7 @@ class MainWindowApp(QMainWindow):
         self.update_favorites()
 
     def update_favorites(self):
+        # обновление избранных во время работы приложений
         self.listWidget.clear()
         self.favorites_id = self.get_favorites()
         self.show_favorites(self.favorites_id)
@@ -199,6 +200,8 @@ class DescriptionWindow(QMainWindow):
     def add_favorites(self):
         # запрос на добавление избранных пользователя
         r = requests.post(f'{URL}/api/favorites/{self.user_id_attraction[0]}/{self.user_id_attraction[1]}')
+        if r.status_code == 404:
+            QMessageBox.critical(self, 'Error 404', r.json()['result']['message'])
         print(r.status_code)
         pass
 
@@ -249,6 +252,8 @@ class RegistartionWindow(QWidget):
             self.main = MainWindowApp(req.json()['result']['id'])
             self.main.show()
             self.close()
+        elif req.status_code == 404:
+            QMessageBox.critical(self, 'Error 404', req.json()['result']['message'])
 
     def registration(self):
         # вызов функции
@@ -274,6 +279,8 @@ class SignInWindow(QWidget):
             self.main = MainWindowApp(req.json()['result']['id'])
             self.main.show()
             self.close()
+        elif req.status_code == 404:
+            QMessageBox.critical(self, 'Error 404', req.json()['result']['message'])
 
     def login(self):
         # вызов функции
