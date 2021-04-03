@@ -17,7 +17,7 @@ class MainWindowApp(QMainWindow):
         self.get_position()
         self.connect_buttons()
         # удалить на релизе
-        #requests.get(f'{URL}/api/APP_IS_WORKING')
+        requests.get(f'{URL}/api/APP_IS_WORKING')
         # . . . . . . . . . . . . . . . . . .
         self.show_favorites(self.favorites_id)
 
@@ -36,6 +36,7 @@ class MainWindowApp(QMainWindow):
         self.find_attractions.clicked.connect(self.show_attractions)
         self.list_attractions.itemClicked.connect(self.selection_changed)
         self.listWidget.itemClicked.connect(self.selection_favorite)
+        self.send.clicked.connect(self.send_anket)
 
     def get_position(self):
         # получение местоположения
@@ -106,7 +107,7 @@ class MainWindowApp(QMainWindow):
 
     def show_favorites(self, source):
         # показ избранных в списке
-        #source.remove('')
+        # source.remove('')
         if len(source) != 0:
             for i in source:
                 response = requests.get(
@@ -124,7 +125,7 @@ class MainWindowApp(QMainWindow):
     def selection_favorite(self, item):
         # открытие окна избранного
         self.window_favorite = DescriptionWindow(item.text(), self.favorites,
-                                                    self.position, [self.user_id, self.favorites[item.text()][3]])
+                                                 self.position, [self.user_id, self.favorites[item.text()][3]])
         self.window_favorite.show()
         self.update_favorites()
 
@@ -133,6 +134,18 @@ class MainWindowApp(QMainWindow):
         self.listWidget.clear()
         self.favorites_id = self.get_favorites()
         self.show_favorites(self.favorites_id)
+
+    def send_anket(self):
+        surname = self.sername.text()
+        name = self.name.text()
+        secondname = self.secondname.text()
+        if surname != '' or name != '' or secondname != '':
+            r = requests.post(f'{URL}/api/anket/{self.user_id}?surname={surname}&name={name}&secondname={secondname}')
+            if r.status_code == 200:
+                self.send.setEnabled(False)
+            print(r.status_code)
+        else:
+            QMessageBox.critical(self, 'Error 404', 'Заполните все поля анкеты')
 
 
 class DescriptionWindow(QMainWindow):
@@ -203,7 +216,6 @@ class DescriptionWindow(QMainWindow):
         if r.status_code == 404:
             QMessageBox.critical(self, 'Error 404', r.json()['result']['message'])
         print(r.status_code)
-        pass
 
 
 # стартовое окно
@@ -247,7 +259,7 @@ class RegistartionWindow(QWidget):
     def get_registr(self, mail, password):
         # получение результата запроса на регистрацию
         req = requests.post(f'{URL}/api/reg/{mail}/{password}')
-        print(req.json())
+        print(req.status_code)
         if req.status_code == 200:
             self.main = MainWindowApp(req.json()['result']['id'])
             self.main.show()

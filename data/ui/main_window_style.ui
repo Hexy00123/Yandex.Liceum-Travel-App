@@ -111,11 +111,11 @@
        <string>&lt;center&gt;Анкета пользователя&lt;/center&gt;</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="pushButton">
+     <widget class="QPushButton" name="send">
       <property name="geometry">
        <rect>
-        <x>150</x>
-        <y>480</y>
+        <x>160</x>
+        <y>460</y>
         <width>231</width>
         <height>41</height>
        </rect>
@@ -125,38 +125,6 @@
       </property>
       <property name="text">
        <string>Отправить анкету</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="pushButton_2">
-      <property name="geometry">
-       <rect>
-        <x>50</x>
-        <y>400</y>
-        <width>151</width>
-        <height>41</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">font-size:16px</string>
-      </property>
-      <property name="text">
-       <string>Загрузить фото</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="pushButton_3">
-      <property name="geometry">
-       <rect>
-        <x>330</x>
-        <y>400</y>
-        <width>151</width>
-        <height>41</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">font-size:16px</string>
-      </property>
-      <property name="text">
-       <string>Посмотреть фото</string>
       </property>
      </widget>
      <widget class="QWidget" name="formLayoutWidget">
@@ -170,7 +138,7 @@
       </property>
       <layout class="QFormLayout" name="formLayout">
        <property name="verticalSpacing">
-        <number>40</number>
+        <number>60</number>
        </property>
        <property name="leftMargin">
         <number>10</number>
@@ -206,21 +174,21 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="lineEdit">
+        <widget class="QLineEdit" name="sername">
          <property name="styleSheet">
           <string notr="true">font-size: 20px</string>
          </property>
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QLineEdit" name="lineEdit_2">
+        <widget class="QLineEdit" name="name">
          <property name="styleSheet">
           <string notr="true">font-size: 20px</string>
          </property>
         </widget>
        </item>
        <item row="2" column="1">
-        <widget class="QLineEdit" name="lineEdit_3">
+        <widget class="QLineEdit" name="secondname">
          <property name="styleSheet">
           <string notr="true">font-size: 20px</string>
          </property>
