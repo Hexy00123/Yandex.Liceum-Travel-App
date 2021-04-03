@@ -1,9 +1,8 @@
-import sys
 import geocoder
 import requests
 from PyQt5 import uic
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QMessageBox
+from PyQt5.QtWidgets import QMainWindow, QWidget, QMessageBox
 from config_client import URL, site, get_attraction, get_map, find_all_attractions, KEY, PATH
 
 
@@ -141,6 +140,9 @@ class MainWindowApp(QMainWindow):
             r = requests.post(f'{URL}/api/anket/{self.user_id}?surname={surname}&name={name}&secondname={secondname}')
             if r.status_code == 200:
                 self.send.setEnabled(False)
+                self.name.setEnabled(False)
+                self.sername.setEnabled(False)
+                self.secondname.setEnabled(False)
                 self.send.setText('Анкета отправлена')
         else:
             QMessageBox.critical(self, 'Error 404', 'Заполните все поля анкеты')
@@ -303,11 +305,3 @@ class SignInWindow(QWidget):
     def login(self):
         # вызов функции
         self.authorization(self.login_line.text(), self.password_line.text())
-
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    # подключила главное окно для отладки, чтобы запустить полность замени класс на StartWindow
-    ex = StartWindow()
-    ex.show()
-    sys.exit(app.exec_())
