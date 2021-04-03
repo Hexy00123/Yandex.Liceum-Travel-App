@@ -153,6 +153,7 @@ class DescriptionWindow(QMainWindow):
         super().__init__()
         uic.loadUi(PATH + 'style_window_information.ui', self)
         # инициализация переменных, получение фото карты, получение описания, вставка фото
+        self.setWindowTitle(name)
         self.make_up()
         self.pixmap = QPixmap()
         self.user_id_attraction = user_id_attraction
@@ -165,6 +166,7 @@ class DescriptionWindow(QMainWindow):
         self.create_description()
         if show_col_favor:
             self.get_col_favor()
+            self.pushButton.setEnabled(False)
 
     def get_col_favor(self):
         # получение кол во человек добавило место в избранное
