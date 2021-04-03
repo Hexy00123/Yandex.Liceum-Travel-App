@@ -2,6 +2,7 @@ from flask import request, jsonify, Flask, Blueprint, make_response
 from model import *
 from config import post_login, post_password
 import smtplib
+import os
 
 app = Flask(__name__)
 
@@ -146,4 +147,5 @@ def start_page():
 
 
 if __name__ == '__main__':
-    app.run(port=8888, host='127.0.0.1', debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
