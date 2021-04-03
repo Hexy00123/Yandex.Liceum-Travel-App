@@ -4,8 +4,6 @@ from config import post_login, post_password
 import smtplib
 import os
 
-import rebuild_database
-
 app = Flask(__name__)
 
 
@@ -79,6 +77,15 @@ def add_favorites(user_id, place_id):
         if place_id + ';' not in user.favorites:
             user.favorites += f'{place_id};'
             user.save()
+
+            place_id = int(place_id)
+            place = Place.get_or_none(id=place_id)
+            if place is not None:
+                place.added_to_favorites += 1
+                place.save()
+            else:
+                Place.create(id=place_id, added_to_favorites=1)
+
             return make_response(jsonify({'result': {'message': 'OK'}}), 200)
         else:
             return make_response(jsonify({'result': {'message': 'Данное место уже есть в списке'}}),
@@ -136,6 +143,19 @@ def get_user(user_id):
                                              'email': user.email,
                                              'favorites': favorites,
                                              'anket_id': user.anket_id}}), 200)
+
+
+@app.route('/api/place/<place_id>', methods=['GET'])
+def get_place(place_id):
+    place_id = int(place_id)
+    place = Place.get_or_none(id=place_id)
+    if place is not None:
+        return make_response(jsonify({'result': {'message': 'OK',
+                                                 'added_to_favorites': place.added_to_favorites}}),
+                             200)
+    else:
+        return make_response(jsonify({'result': {'message': 'OK',
+                                                 'added_to_favorites': 0}}), 200)
 
 
 @app.route('/api/APP_IS_WORKING', methods=['GET'])

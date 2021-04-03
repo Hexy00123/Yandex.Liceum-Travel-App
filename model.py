@@ -14,8 +14,14 @@ class User(BaseModel):
     favorites = peewee.TextField()
     anket_id = peewee.IntegerField()
 
+
 class Anket(BaseModel):
     id = peewee.IntegerField()
     surname = peewee.TextField()
     name = peewee.TextField()
     secondname = peewee.TextField()
+
+
+class Place(BaseModel):
+    id = peewee.IntegerField()
+    added_to_favorites = peewee.IntegerField()
