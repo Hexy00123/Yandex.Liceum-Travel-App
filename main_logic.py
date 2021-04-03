@@ -16,9 +16,6 @@ class MainWindowApp(QMainWindow):
         self.init_constants()
         self.get_position()
         self.connect_buttons()
-        # удалить на релизе
-        requests.get(f'{URL}/api/APP_IS_WORKING')
-        # . . . . . . . . . . . . . . . . . .
         self.show_favorites(self.favorites_id)
 
     def init_constants(self):
@@ -125,7 +122,7 @@ class MainWindowApp(QMainWindow):
     def selection_favorite(self, item):
         # открытие окна избранного
         self.window_favorite = DescriptionWindow(item.text(), self.favorites,
-                                                 self.position, [self.user_id, self.favorites[item.text()][3]])
+                                                 self.position, [self.user_id, self.favorites[item.text()][3]], True)
         self.window_favorite.show()
         self.update_favorites()
 
@@ -136,24 +133,24 @@ class MainWindowApp(QMainWindow):
         self.show_favorites(self.favorites_id)
 
     def send_anket(self):
+        # отправка анкеты
         surname = self.sername.text()
         name = self.name.text()
         secondname = self.secondname.text()
-        if surname != '' or name != '' or secondname != '':
+        if surname.strip() != '' and name.strip() != '' and secondname.strip() != '':
             r = requests.post(f'{URL}/api/anket/{self.user_id}?surname={surname}&name={name}&secondname={secondname}')
             if r.status_code == 200:
                 self.send.setEnabled(False)
-            print(r.status_code)
+                self.send.setText('Анкета отправлена')
         else:
             QMessageBox.critical(self, 'Error 404', 'Заполните все поля анкеты')
 
 
 class DescriptionWindow(QMainWindow):
-    def __init__(self, name, attractions, position, user_id_attraction):
+    def __init__(self, name, attractions, position, user_id_attraction, show_col_favor=False):
         super().__init__()
         uic.loadUi(PATH + 'style_window_information.ui', self)
         # инициализация переменных, получение фото карты, получение описания, вставка фото
-        self.setWindowTitle(name)
         self.make_up()
         self.pixmap = QPixmap()
         self.user_id_attraction = user_id_attraction
@@ -164,6 +161,15 @@ class DescriptionWindow(QMainWindow):
         self.create_map(name)
         self.set_photo()
         self.create_description()
+        if show_col_favor:
+            self.get_col_favor()
+
+    def get_col_favor(self):
+        # получение кол во человек добавило место в избранное
+        req = requests.get(f'{URL}/api/place/{self.user_id_attraction[1]}')
+        if req.status_code == 200:
+            col = req.json()['result']['added_to_favorites']
+            self.setWindowTitle(self.name + ' - добавлено в избранное у ' + str(col) + ' человек')
 
     def connect_butttons(self):
         self.pushButton.clicked.connect(self.add_favorites)
@@ -299,18 +305,9 @@ class SignInWindow(QWidget):
         self.authorization(self.login_line.text(), self.password_line.text())
 
 
-# отладочная функция для показа ошибок, удалить на релизе
-def except_hook(cls, exception, traceback):
-    sys.__excepthook__(cls, exception, traceback)
-
-
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     # подключила главное окно для отладки, чтобы запустить полность замени класс на StartWindow
     ex = StartWindow()
     ex.show()
-    # отладочная функция для показа ошибок, удалить на релизе
-    # . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-    sys.excepthook = except_hook
-    # . . . . . . . . . . . . . . . . . . . . . . . . . . . .
     sys.exit(app.exec_())
