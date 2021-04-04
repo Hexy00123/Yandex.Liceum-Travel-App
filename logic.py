@@ -24,7 +24,6 @@ class MainWindowApp(QMainWindow):
         self.atractions = {}
         self.position = []
         self.favorites_id = self.get_favorites()
-        print(self.favorites_id)
         self.favorites = {}
 
     def connect_buttons(self):
@@ -33,6 +32,7 @@ class MainWindowApp(QMainWindow):
         self.list_attractions.itemClicked.connect(self.selection_changed)
         self.listWidget.itemClicked.connect(self.selection_favorite)
         self.send.clicked.connect(self.send_anket)
+        self.tabWidget.tabBarClicked.connect(self.update_favorites)
 
     def get_position(self):
         # получение местоположения
