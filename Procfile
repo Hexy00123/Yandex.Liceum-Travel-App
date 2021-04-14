@@ -1,2 +1,2 @@
-worker: python rebuild_database.py
+release: python rebuild_database.py
 web: python app.py
