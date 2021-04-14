@@ -6,6 +6,7 @@ import os
 
 app = Flask(__name__)
 
+import rebuild_database
 
 @app.route('/api/reg/<mail>/<password>', methods=['POST'])
 def register(mail, password):
@@ -220,4 +221,4 @@ def start_page():
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='127.0.0.1', port=port)
+    app.run(host='0.0.0.0', port=port)
