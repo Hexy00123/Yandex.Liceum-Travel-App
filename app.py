@@ -4,8 +4,6 @@ from config import post_login, post_password
 import smtplib
 import os
 
-import rebuild_database
-
 app = Flask(__name__)
 
 
@@ -16,14 +14,15 @@ def register(mail, password):
             user_id = max(i.id for i in User.select()) + 1
         except ValueError:
             user_id = 1
-        User.create(id=user_id, email=mail, password=password, favorites='', anket_id=0)
+        User.create(id=user_id, email=mail, password=password, anket_id=0)
 
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.ehlo()
         server.starttls()
         server.login(post_login, post_password)
 
-        text = 'Данная почта была зарегестрирована в приложении'
+        text = f'Ваша почта: {mail} была зарегестрирована в приложении для определения ближайших' \
+               f'достопримечательностей'
 
         text = "\r\n".join([
             "Subject: Регистрация нового пользователя",
@@ -76,13 +75,17 @@ def add_favorites(user_id, place_id):
             return make_response(jsonify({'result': {'message': 'Добавлять в избранное могут '
                                                                 'только пользователи с '
                                                                 'заполенной анкетой'}}), 404)
-        if place_id + ';' not in user.favorites:
-            user.favorites += f'{place_id};'
-            user.save()
+        if not bool(UserPlaces.select().where(
+                (UserPlaces.user_id == user_id) & (UserPlaces.place_id == place_id))):
+            try:
+                id = max(i.id for i in UserPlaces.select()) + 1
+            except ValueError:
+                id = 1
 
-            place_id = int(place_id)
-            place = Place.get_or_none(id=place_id)
-            if place is not None:
+            UserPlaces.create(user_id=user_id, place_id=place_id, comment='', id=id)
+
+            if bool(Place.select().where(Place.id == place_id)):
+                place = Place.select().where(Place.id == place_id)[0]
                 place.added_to_favorites += 1
                 place.save()
             else:
@@ -101,8 +104,12 @@ def add_favorites(user_id, place_id):
 @app.route('/api/favorites/<user_id>', methods=['GET'])
 def send_favorites(user_id):
     if bool(User.select().where(User.id == user_id)):
-        user = User.get_by_id(user_id)
-        answer = [favorite for favorite in user.favorites.split(';')[:-1]]
+        places = UserPlaces.select().where(UserPlaces.user_id == user_id)
+        answer = []
+
+        for place in places:
+            answer.append(place.place_id)
+
         return make_response(jsonify({'result': {'message': 'OK',
                                                  'favorites': answer}}), 200)
     else:
@@ -140,10 +147,8 @@ def get_anket(anket_id):
 @app.route('/api/user/<user_id>', methods=['GET'])
 def get_user(user_id):
     user = User.get_by_id(user_id)
-    favorites = [favorite for favorite in user.favorites.split(';')[:-1]]
     return make_response(jsonify({'result': {'message': 'OK',
                                              'email': user.email,
-                                             'favorites': favorites,
                                              'anket_id': user.anket_id}}), 200)
 
 
@@ -152,12 +157,55 @@ def get_place(place_id):
     place_id = int(place_id)
     place = Place.get_or_none(id=place_id)
     if place is not None:
+        comments = []
+        for record in UserPlaces.select().where(UserPlaces.place_id == place_id):
+            comments.append([record.user_id, record.comment])
+
         return make_response(jsonify({'result': {'message': 'OK',
-                                                 'added_to_favorites': place.added_to_favorites}}),
+                                                 'added_to_favorites': place.added_to_favorites,
+                                                 'comments': comments}}),
                              200)
     else:
         return make_response(jsonify({'result': {'message': 'OK',
                                                  'added_to_favorites': 0}}), 200)
+
+
+@app.route('/api/comments', methods=['POST'])
+def add_comment():
+    args = request.args
+    user_id = int(args.get('user_id'))
+    place_id = int(args.get('place_id'))
+    comment = args.get('comment')
+
+    if bool(UserPlaces.select().where(
+            (UserPlaces.user_id == user_id) & (UserPlaces.place_id == place_id))):
+        post = \
+            UserPlaces.select().where((
+                                              UserPlaces.user_id == user_id) & (
+                                              UserPlaces.place_id == place_id))[0]
+        post.comment = comment
+        post.save()
+        return make_response(jsonify({'result': {'message': 'OK'}}), 200)
+    else:
+        return make_response(jsonify({'result': {'message': 'Такой записи не существует'}}), 404)
+
+
+@app.route('/api/comments/<user_id>/<place_id>', methods=['GET'])
+def get_comment(user_id, place_id):
+    user_id, place_id = int(user_id), int(place_id)
+    print([i.place_id for i in UserPlaces.select().where(
+        (UserPlaces.place_id == place_id) & (UserPlaces.user_id == user_id))])
+
+    if bool(UserPlaces.select().where(
+            (UserPlaces.place_id == place_id) & (UserPlaces.user_id == user_id))):
+        post = \
+            UserPlaces.select().where(
+                (UserPlaces.place_id == place_id) & (UserPlaces.user_id == user_id))[0]
+
+        return make_response(jsonify({'result': {'message': 'OK',
+                                                 'comment': post.comment}}), 200)
+    else:
+        return make_response(jsonify({'result': {'message': 'Такой записи не существует'}}), 404)
 
 
 @app.route('/api/APP_IS_WORKING', methods=['GET'])
@@ -172,4 +220,4 @@ def start_page():
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='127.0.0.1', port=port)
