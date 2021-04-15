@@ -6,7 +6,6 @@ import os
 
 app = Flask(__name__)
 
-import rebuild_database
 
 @app.route('/api/reg/<mail>/<password>', methods=['POST'])
 def register(mail, password):
