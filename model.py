@@ -30,4 +30,10 @@ class UserPlaces(BaseModel):
     id = peewee.IntegerField()
     user_id = peewee.IntegerField()
     place_id = peewee.IntegerField()
-    comment = peewee.TextField()
+
+
+class Comments(BaseModel):
+    id = peewee.IntegerField()
+    user_id = peewee.IntegerField()
+    place_id = peewee.IntegerField()
+    text = peewee.TextField()

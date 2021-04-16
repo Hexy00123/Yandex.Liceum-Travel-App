@@ -21,8 +21,8 @@ def register(mail, password):
         server.starttls()
         server.login(post_login, post_password)
 
-        text = f'Ваша почта: {mail} была зарегестрирована в приложении для определения ближайших' \
-               f'достопримечательностей'
+        text = f'Ваша почта: {mail.split("@")[0]} была зарегестрирована в приложении для ' \
+               f'определения ближайших достопримечательностей'
 
         text = "\r\n".join([
             "Subject: Регистрация нового пользователя",
@@ -82,7 +82,7 @@ def add_favorites(user_id, place_id):
             except ValueError:
                 id = 1
 
-            UserPlaces.create(user_id=user_id, place_id=place_id, comment='', id=id)
+            UserPlaces.create(user_id=user_id, place_id=place_id, id=id)
 
             if bool(Place.select().where(Place.id == place_id)):
                 place = Place.select().where(Place.id == place_id)[0]
@@ -157,55 +157,43 @@ def get_place(place_id):
     place_id = int(place_id)
     place = Place.get_or_none(id=place_id)
     if place is not None:
-        comments = []
-        for record in UserPlaces.select().where(UserPlaces.place_id == place_id):
-            comments.append([record.user_id, record.comment])
-
         return make_response(jsonify({'result': {'message': 'OK',
-                                                 'added_to_favorites': place.added_to_favorites,
-                                                 'comments': comments}}),
+                                                 'added_to_favorites': place.added_to_favorites}}),
                              200)
     else:
         return make_response(jsonify({'result': {'message': 'OK',
                                                  'added_to_favorites': 0}}), 200)
 
 
-@app.route('/api/comments', methods=['POST'])
-def add_comment():
-    args = request.args
-    user_id = int(args.get('user_id'))
-    place_id = int(args.get('place_id'))
-    comment = args.get('comment')
+@app.route('/api/comments/<user_id>/<place_id>', methods=['POST'])
+def add_comment(user_id, place_id):
+    if User.get_or_none(id=user_id) and Place.get_or_none(id=place_id):
+        text = request.args.get('text')
+        try:
+            id = max(comment.id for comment in Comments.select()) + 1
+        except ValueError:
+            id = 1
 
-    if bool(UserPlaces.select().where(
-            (UserPlaces.user_id == user_id) & (UserPlaces.place_id == place_id))):
-        post = \
-            UserPlaces.select().where((
-                                              UserPlaces.user_id == user_id) & (
-                                              UserPlaces.place_id == place_id))[0]
-        post.comment = comment
-        post.save()
+        Comments.create(id=id, user_id=user_id, place_id=place_id, text=text)
+
         return make_response(jsonify({'result': {'message': 'OK'}}), 200)
-    else:
-        return make_response(jsonify({'result': {'message': 'Такой записи не существует'}}), 404)
+    return make_response(jsonify({'result': {'message': 'Не существует места или пользователя'}}),
+                         200)
 
 
 @app.route('/api/comments/<user_id>/<place_id>', methods=['GET'])
 def get_comment(user_id, place_id):
-    user_id, place_id = int(user_id), int(place_id)
-    print([i.place_id for i in UserPlaces.select().where(
-        (UserPlaces.place_id == place_id) & (UserPlaces.user_id == user_id))])
-
-    if bool(UserPlaces.select().where(
-            (UserPlaces.place_id == place_id) & (UserPlaces.user_id == user_id))):
-        post = \
-            UserPlaces.select().where(
-                (UserPlaces.place_id == place_id) & (UserPlaces.user_id == user_id))[0]
-
-        return make_response(jsonify({'result': {'message': 'OK',
-                                                 'comment': post.comment}}), 200)
-    else:
-        return make_response(jsonify({'result': {'message': 'Такой записи не существует'}}), 404)
+    comments = Comments.select().where((user_id == user_id) & (place_id == place_id))
+    res = []
+    for comment in comments:
+        res.append(
+            {
+                'user_id': comment.user_id,
+                'place_id': comment.place_id,
+                'text': comment.text
+            }
+        )
+    return make_response(jsonify({'result': {'message': 'OK', 'comments': res}}), 200)
 
 
 @app.route('/api/APP_IS_WORKING', methods=['GET'])
@@ -220,4 +208,4 @@ def start_page():
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='127.0.0.1', port=port)
