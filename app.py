@@ -3,8 +3,6 @@ from model import *
 from config import post_login, post_password
 import smtplib
 import os
-import rebuild_database
-
 
 app = Flask(__name__)
 
@@ -23,8 +21,9 @@ def register(mail, password):
         server.starttls()
         server.login(post_login, post_password)
 
-        text = f'Ваша почта: {mail.split("@")[0]} была зарегестрирована в приложении для ' \
-               f'определения ближайших достопримечательностей'
+        text = 'Ваша почта ' + str(mail) + ' была зарегестрирована в нашем приложении \
+                                           для определения ближайших достопримечательностей.'
+        text += '\n\n Желаем приятного пользования!'
 
         text = "\r\n".join([
             "Subject: Регистрация нового пользователя",
@@ -180,18 +179,18 @@ def add_comment(user_id, place_id):
 
         return make_response(jsonify({'result': {'message': 'OK'}}), 200)
     return make_response(jsonify({'result': {'message': 'Не существует места или пользователя'}}),
-                         200)
+                         404)
 
 
-@app.route('/api/comments/<user_id>/<place_id>', methods=['GET'])
-def get_comment(user_id, place_id):
-    comments = Comments.select().where((user_id == user_id) & (place_id == place_id))
+@app.route('/api/comments/<place_id>', methods=['GET'])
+def get_comment(place_id):
+    comments = Comments.select().where(Comments.place_id == place_id)
     res = []
     for comment in comments:
+        print(comment)
         res.append(
             {
                 'user_id': comment.user_id,
-                'place_id': comment.place_id,
                 'text': comment.text
             }
         )
