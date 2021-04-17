@@ -6,6 +6,6 @@
 Все данные от пользователя отправляются на сервер, в котором мы построили собственное api, с помощью фреймворка flask и сохраняются в 
 базе данных, которая управляется с помощью библиотеки peewee. Как сервер, так и база данных загружены на Heroku.
 
-![database_diagram](https://user-images.githubusercontent.com/61911470/115111276-a490eb80-9f90-11eb-8b9b-c0c7bf359f76.jpg)
+![database_diagram](https://github.com/Hexy00123/YLProject/blob/Resourses/database_diagram.jpg)
 
 
