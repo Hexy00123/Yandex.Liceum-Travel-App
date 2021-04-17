@@ -3,6 +3,7 @@ from model import *
 from config import post_login, post_password
 import smtplib
 import os
+import rebuild_database
 
 app = Flask(__name__)
 
