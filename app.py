@@ -3,6 +3,8 @@ from model import *
 from config import post_login, post_password
 import smtplib
 import os
+from random import randint
+
 import rebuild_database
 
 app = Flask(__name__)
@@ -196,6 +198,44 @@ def get_comment(place_id):
             }
         )
     return make_response(jsonify({'result': {'message': 'OK', 'comments': res}}), 200)
+
+
+@app.route('/api/forgot_password', methods=['GET'])
+def get_code():
+    mail = request.args.get('post')
+    user = User.get_or_none(email=mail)
+    if user:
+        user.code_for_change_password = ''.join([str(randint(0, 9)) for _ in range(7)])
+        user.save()
+
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.ehlo()
+        server.starttls()
+        server.login(post_login, post_password)
+
+        text = 'Ваш код для смены пароля ' + str(user.code_for_change_password)
+
+        text = "\r\n".join([
+            "Subject: Восстановление пароля",
+            str(text)
+        ])
+
+        server.sendmail(post_login, mail, text.encode('utf-8'))
+        server.quit()
+
+        return make_response({'result': {'user_id': user.id,
+                                         'code': user.code_for_change_password,
+                                         'message': 'OK'}}, 200)
+    return make_response({'result': {'message': 'Указанная вами почта не зарегестрирована'}}, 404)
+
+
+@app.route('/api/forgot_password/<user_id>/<password>', methods=['POST'])
+def return_password(user_id, password):
+    user = User.get_or_none(id=user_id)
+    if user:
+        user.password = password
+        user.save()
+        return make_response({'result': {'message': 'OK'}},200)
 
 
 @app.route('/api/APP_IS_WORKING', methods=['GET'])

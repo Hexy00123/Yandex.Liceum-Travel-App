@@ -12,6 +12,8 @@ class User(BaseModel):
     email = peewee.TextField()
     password = peewee.TextField()
     anket_id = peewee.IntegerField()
+    code_for_change_password = peewee.TextField(default='')
+
 
 
 class Anket(BaseModel):
