@@ -1,8 +1,10 @@
+import json
+
 import geocoder
 import requests
 from PyQt5 import uic
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QMainWindow, QWidget, QMessageBox
+from PyQt5.QtWidgets import QMainWindow, QWidget, QMessageBox, QInputDialog
 from config_client import URL, site, get_attraction, get_map, find_all_attractions, KEY, PATH
 
 
@@ -16,6 +18,7 @@ class MainWindowApp(QMainWindow):
         self.get_position()
         self.connect_buttons()
         self.show_favorites(self.favorites_id)
+        self.update_anket()
 
     def init_constants(self):
         # инициализирование переменных34
@@ -46,7 +49,7 @@ class MainWindowApp(QMainWindow):
 
         # получение достопримечательностей
         response = requests.get(find_all_attractions, params={
-            'radius': '1500',
+            'radius': '2000',
             'lon': self.position[0],
             'lat': self.position[1],
             'apikey': KEY
@@ -68,7 +71,6 @@ class MainWindowApp(QMainWindow):
                                                              response2.json().get('point')['lat'],
                                                              response2.json()['info']['descr'],
                                                              i]
-        # возвращение id отсортированных достопримечательностей
         return self.ids_with_images
 
     def show_attractions(self):
@@ -96,7 +98,6 @@ class MainWindowApp(QMainWindow):
     def get_favorites(self):
         # get запрос избранных пользователя присваевается резульата self.favorites_id
         req = requests.get(f'{URL}/api/favorites/{self.user_id}')
-        print(req.status_code)
         if req.status_code == 200:
             return req.json()['result']['favorites']
         return None
@@ -107,7 +108,7 @@ class MainWindowApp(QMainWindow):
         if len(source) != 0:
             for i in source:
                 response = requests.get(
-                    get_attraction + i + '?',
+                    get_attraction + str(i) + '?',
                     params={
                         'apikey': KEY
                     })
@@ -147,6 +148,17 @@ class MainWindowApp(QMainWindow):
         else:
             QMessageBox.critical(self, 'Error 404', 'Заполните все поля анкеты')
 
+    def update_anket(self):
+        get_anket_id = requests.get(f'{URL}/api/user/{self.user_id}').json()
+        anket_id = get_anket_id['result']['anket_id']
+        get_user_anket = requests.get(f'{URL}/api/anket/{anket_id}')
+        if get_user_anket.status_code == 200:
+            print(get_user_anket.json())
+            self.sername.insert(get_user_anket.json()['result']['surname'])
+            self.name.insert(get_user_anket.json()['result']['name'])
+            self.secondname.insert(get_user_anket.json()['result']['secondname'])
+            self.send_anket()
+
 
 class DescriptionWindow(QMainWindow):
     def __init__(self, name, attractions, position, user_id_attraction, show_col_favor=False):
@@ -177,6 +189,8 @@ class DescriptionWindow(QMainWindow):
 
     def connect_butttons(self):
         self.pushButton.clicked.connect(self.add_favorites)
+        self.pushButton_2.clicked.connect(self.add_comment)
+        self.tabWidget.currentChanged.connect(self.show_comment)
 
     def make_up(self):
         # небольшие косметические поправки
@@ -225,7 +239,45 @@ class DescriptionWindow(QMainWindow):
         r = requests.post(f'{URL}/api/favorites/{self.user_id_attraction[0]}/{self.user_id_attraction[1]}')
         if r.status_code == 404:
             QMessageBox.critical(self, 'Error 404', r.json()['result']['message'])
-        print(r.status_code)
+
+    def add_comment(self):
+        favorites = []
+        check_favorites = requests.get(f'{URL}/api/favorites/{self.user_id_attraction[0]}')
+        if check_favorites.status_code == 200:
+            favorites = check_favorites.json()['result']['favorites']
+        if int(self.user_id_attraction[1]) in favorites:
+            if self.lineEdit.text().split() != '':
+                req = requests.post(f'{URL}/api/comments/{self.user_id_attraction[0]}/{self.user_id_attraction[1]}',
+                                    params={
+                                        'text': self.lineEdit.text()
+                                    })
+                print(req.status_code)
+                self.lineEdit.clear()
+                self.show_comment()
+        else:
+            QMessageBox.critical(self, 'Error 404', 'Только записи, добавленные в избранные, можно комментировать')
+
+    def show_comment(self):
+        self.lineEdit.clear()
+        if self.tabWidget.currentIndex() == 3:
+            self.listWidget.clear()
+            req = requests.get(f'{URL}/api/comments/{self.user_id_attraction[1]}')
+            print(req.status_code)
+            print(self.user_id_attraction[1])
+            if req.json()['result']['message'] != 'Такой записи не существует':
+                comments = req.json()['result']['comments']
+                for i in comments:
+                    if i['text'] != '':
+                        try:
+                            get_anket_id = requests.get(f'{URL}/api/user/{i["user_id"]}').json()
+                            anket_id = get_anket_id['result']['anket_id']
+                            get_user_anket = requests.get(f'{URL}/api/anket/{anket_id}').json()
+                            name = get_user_anket['result']['name']
+                            second = get_user_anket['result']['surname']
+                            self.listWidget.addItem(f'{name} {second}: {i["text"]}')
+                        except json.decoder.JSONDecodeError:
+                            QMessageBox.critical(self, 'Error 404',
+                                                 'Только записи, добавленные в избранные, можно комментировать')
 
 
 # стартовое окно
@@ -293,6 +345,7 @@ class SignInWindow(QWidget):
     def connect_buttons(self):
         # подключение кнопок
         self.authentificate_button.clicked.connect(self.login)
+        self.forgot_password_button.clicked.connect(self.forgot_password)
 
     def authorization(self, mail, password):
         # получение результата запроса на вход
@@ -307,3 +360,27 @@ class SignInWindow(QWidget):
     def login(self):
         # вызов функции
         self.authorization(self.login_line.text(), self.password_line.text())
+
+    def forgot_password(self):
+        if self.login_line.text().strip() != '':
+            r = requests.get(f'{URL}/api/forgot_password', params={
+                'post': self.login_line.text().strip()
+            })
+            QMessageBox.information(self, "Востановление пароля",
+                                    "На вашу почту отправлено письмо с кодом")
+            code = r.json()['result']['code']
+            code_from_user = QInputDialog.getText(self, 'Проверка кода', "Введите код, который пришел вам на почту")[0]
+            if str(code) == str(code_from_user):
+                new_password = QInputDialog.getText(self, "Изменение пароля",
+                                                    "Введите новый пароль")
+                change_password = requests.post(
+                    f'{URL}/api/forgot_password/{r.json()["result"]["user_id"]}/{new_password[0]}')
+                if change_password.status_code == 200:
+                    QMessageBox.information(self, "Изменение пароля",
+                                            "Пароль изменен")
+                else:
+                    QMessageBox.critical(self, "Изменение пароля",
+                                         "Не удалось изменить пароль")
+        else:
+            QMessageBox.information(self, "Востановление пароля",
+                                    "Введите почту")
