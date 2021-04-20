@@ -16,9 +16,9 @@
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>150</x>
+     <x>130</x>
      <y>20</y>
-     <width>151</width>
+     <width>141</width>
      <height>31</height>
     </rect>
    </property>
@@ -34,7 +34,7 @@
   <widget class="QPushButton" name="authentificate_button">
    <property name="geometry">
     <rect>
-     <x>220</x>
+     <x>160</x>
      <y>190</y>
      <width>75</width>
      <height>23</height>
@@ -101,19 +101,6 @@
      </layout>
     </item>
    </layout>
-  </widget>
-  <widget class="QPushButton" name="forgot_password_button">
-   <property name="geometry">
-    <rect>
-     <x>80</x>
-     <y>190</y>
-     <width>101</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>забыл пароль</string>
-   </property>
   </widget>
  </widget>
  <resources/>
