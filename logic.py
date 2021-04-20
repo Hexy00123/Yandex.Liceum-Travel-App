@@ -363,12 +363,15 @@ class SignInWindow(QWidget):
 
     def forgot_password(self):
         if self.login_line.text().strip() != '':
+            print(self.login_line.text().strip())
             r = requests.get(f'{URL}/api/forgot_password', params={
                 'post': self.login_line.text().strip()
             })
             QMessageBox.information(self, "Востановление пароля",
                                     "На вашу почту отправлено письмо с кодом")
+            print(r.json())
             code = r.json()['result']['code']
+            print(code)
             code_from_user = QInputDialog.getText(self, 'Проверка кода', "Введите код, который пришел вам на почту")[0]
             if str(code) == str(code_from_user):
                 new_password = QInputDialog.getText(self, "Изменение пароля",
