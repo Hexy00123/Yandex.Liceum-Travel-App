@@ -50,7 +50,7 @@ def authorisation(mail, password):
         if password != user.password:
             return make_response(jsonify({'result': {'message': 'Неверный пароль'}}), 404)
 
-        server = smtplib.SMTP("smtp.gmail.com", 587)
+        '''server = smtplib.SMTP("smtp.gmail.com", 587)
         server.ehlo()
         server.starttls()
         server.login(post_login, post_password)
@@ -63,7 +63,7 @@ def authorisation(mail, password):
         ])
 
         server.sendmail(post_login, mail, text.encode('utf-8'))
-        server.quit()
+        server.quit()'''
 
         return make_response(jsonify({'result': {'message': 'OK', 'id': user.id}}), 200)
     except:
